@@ -1,6 +1,12 @@
 import random
 import sqlite3
 
+MAX_CPU = 100
+MAX_MEM = 2048
+MAX_DCS = 20
+MAX_NODES = 10
+MAX_REQS = 200
+
 class Queue:
 
   def __init__(self):
@@ -25,66 +31,81 @@ class Queue:
       return self.queue
 
 def initiateQueue(myQueue):
-      for x in range(random.randint(1,101)):
-           cpu = random.randint(1,101)
-           mem = random.randint(1,101)
+      for x in range(random.randint(1, MAX_REQS + 1)):
+           cpu = random.randint(1,MAX_CPU + 1)
+           mem = random.randint(1,MAX_MEM + 1)
            myQueue.enqueue(cpu, mem)
 
-def createDataCenterTable(c):
-	c.execute('PRAGMA foreign_keys = ON')
-	c.execute('''CREATE TABLE IF NOT EXISTS `DataCenter` (
-	`DCID`	INTEGER,
-	`CPU`	INTEGER,
-	`MEM`	INTEGER,
-	PRIMARY KEY(`DCID`)
-);'''
-)
-	
+class Database:
 
-def  createNodeTable(c):
-	c.execute('PRAGMA foreign_keys = ON')
-	c.execute('''CREATE TABLE IF NOT EXISTS `Node` (
-	`NodeID`	INTEGER,
-	`FDCID`	INTEGER,
-	`CPU`	INTEGER DEFAULT 0,
-	`MEM`	INTEGER DEFAULT 0,
-	PRIMARY KEY(`NodeID`)
-	FOREIGN KEY (`FDCID`) REFERENCES DataCenter(`DCID`)
-);
-''')
-	
+  def __init__(self):
+      self.conn = sqlite3.connect('mydb.db')
+      self.c = self.conn.cursor()
+      
 
-def insertIntoDCTable(c, rowid):
+  def createDataCenterTable(self):
+  	self.c.execute('PRAGMA foreign_keys = ON')
+  	self.c.execute('''CREATE TABLE IF NOT EXISTS `DataCenter` (
+  	`DCID`	INTEGER,
+  	`CPU`	INTEGER,
+  	`MEM`	INTEGER,
+  	PRIMARY KEY(`DCID`)
+  );'''
+  )
+  	
 
-	exec_str = "INSERT INTO DataCenter VALUES (" + str(rowid) + ", " + "NULL" + ", " + "NULL" + ")" 
-	c.execute(exec_str)
+  def  createNodeTable(self):
+  	self.c.execute('PRAGMA foreign_keys = ON')
+  	self.c.execute('''CREATE TABLE IF NOT EXISTS `Node` (
+  	`NodeID`	INTEGER,
+  	`FDCID`	INTEGER,
+  	`CPU`	INTEGER DEFAULT 0,
+  	`MEM`	INTEGER DEFAULT 0,
+  	PRIMARY KEY(`NodeID`)
+  	FOREIGN KEY (`FDCID`) REFERENCES DataCenter(`DCID`)
+  );
+  ''')
+  	
+  def generateRandomDCs(self):
+    num_of_dcs = random.randint(1,MAX_DCS + 1) 
+    print("creating " + str(num_of_dcs) + " datacenters")
+    for x in range(1, num_of_dcs + 1):
+      self.insertIntoDCTable(x)
+    return num_of_dcs
+
+  def generateRandomNodes(self, num_of_dcs):
+  	node_table_cntr = 1
+    	for dc_cnt in range(1, num_of_dcs + 1):
+    		num_of_nodes = random.randint(1, MAX_NODES + 1)
+    		cpu = random.randint(1, MAX_CPU + 1)
+    		mem = random.randint(1, MAX_MEM + 1)
+    		total_cpu = cpu * num_of_nodes
+    		total_mem = mem * num_of_nodes
+    		for node_cnt in range(1, num_of_nodes + 1):
+    			self.insertIntoNodeTable(node_table_cntr, dc_cnt, cpu, mem)
+    			node_table_cntr += 1
+
+    		self.c.execute("UPDATE DataCenter SET CPU = " + str(total_cpu) + ", MEM =  " + str(total_mem) + " WHERE DCID = " + str(dc_cnt))
+
+  def insertIntoDCTable(self, rowid):
+
+    exec_str = "INSERT INTO DataCenter VALUES (" + str(rowid) + ", " + "NULL" + ", " + "NULL" + ")" 
+    self.c.execute(exec_str)
 
 
-def insertIntoNodeTable(c, rowid, dcid, cpu, mem):
-	exec_str = "INSERT INTO Node VALUES (" + str(rowid) + ", " +str(dcid) + ", "+ str(cpu) + ", " + str(mem) + ")"  
-	#print(exec_str)
-	c.execute(exec_str)
+  def insertIntoNodeTable(self, rowid, dcid, cpu, mem):
+    exec_str = "INSERT INTO Node VALUES (" + str(rowid) + ", " +str(dcid) + ", "+ str(cpu) + ", " + str(mem) + ")"  
+    #print(exec_str)
+    self.c.execute(exec_str)
 
-def generateRandomDCs(c):
-  num_of_dcs = random.randint(1,101) # number of data centers between 1 and 100
-  print("creating " + str(num_of_dcs) + " datacenters")
-  for x in range(1, num_of_dcs + 1):
-  	insertIntoDCTable(c, x)
-  return num_of_dcs
+  def printDCTable(self):
+    for row in self.c.execute("SELECT * FROM DataCenter"):
+      print(row)
 
-def generateRandomNodes(c, num_of_dcs):
-	node_table_cntr = 0
-  	for dc_cnt in range(1, num_of_dcs + 1):
-  		num_of_nodes = random.randint(1, 51)
-  		cpu = random.randint(1, 101)
-  		mem = random.randint(1, 2049)
-  		total_cpu = cpu * num_of_nodes
-  		total_mem = mem * num_of_nodes
-  		for node_cnt in range(1, num_of_nodes + 1):
-  			insertIntoNodeTable(c, node_table_cntr, dc_cnt, cpu, mem)
-  			node_table_cntr += 1
+  def printNodeTable(self):
+    for row in self.c.execute("SELECT * FROM Node"):
+     print(row)
 
-  		c.execute("UPDATE DataCenter SET CPU = " + str(total_cpu) + ", MEM =  " + str(total_mem) + " WHERE DCID = " + str(dc_cnt))
 
 
 
@@ -94,26 +115,17 @@ def main():
   initiateQueue(myQueue)
   size = myQueue.size()
   print(size)
-  conn = sqlite3.connect('mydb.db')
-  c = conn.cursor()
-  createDataCenterTable(c)
-  #c.execute("DROP TABLE Node")
-  #c.execute("DELETE FROM DataCenter")
-  #conn.commit()
-  createNodeTable(c)
 
-
-  num_of_dcs = generateRandomDCs(c)
-  generateRandomNodes(c, num_of_dcs)
+  myDB = Database()
+  myDB.createDataCenterTable()
+  myDB.createNodeTable()
+  
+  num_of_dcs = myDB.generateRandomDCs()
+  myDB.generateRandomNodes(num_of_dcs)
+  myDB.printDCTable()
+  myDB.printNodeTable()
 
   print("here")
-
-  for row in c.execute("SELECT * FROM DataCenter"):
-  	print(row)
-
-  for row in c.execute("SELECT * FROM Node"):
-  	print(row)
-  		
 
 if __name__== "__main__":
   main()

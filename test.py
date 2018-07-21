@@ -21,6 +21,15 @@ class Queue:
      self.queue.insert(0,(task_id, cpu, cpu_type, mem, priority))
      return True
       #return False
+  def enqueuelist(self, toEnqueue):
+    for x in toEnqueue:
+      task_id = x[0]
+      cpu = x[3]
+      cpu_type = x[4]
+      mem = x[5]
+      priority = x[6]
+      print("Enqueueing ",task_id, cpu, cpu_type, mem, priority)
+      self.queue.insert(0, (task_id, cpu, cpu_type, mem, priority))
 
   def dequeue(self):
       if len(self.queue)>0:
@@ -56,7 +65,7 @@ class Queue:
 class Database:
 
   def __init__(self):
-      self.conn = sqlite3.connect('uuuu.db')
+      self.conn = sqlite3.connect('setareee.db')
       self.c = self.conn.cursor()
       
 
@@ -96,6 +105,7 @@ class Database:
       `DCID`    INTEGER,
       `NODEID` INTEGER,
       `CPU` INTEGER,
+      `CPU_TYPE` INTEGER,
       `MEM` INTEGER,
       `PRIORITY` INTEGER,
 
@@ -108,7 +118,7 @@ class Database:
     global task_id
     for x in range(1, task_id):
       print("inserting task")
-      self.c.execute("INSERT INTO Task VALUES (" + str(x) + ", NULL, NULL, NULL, NULL, NULL)" )
+      self.c.execute("INSERT INTO Task VALUES (" + str(x) + ", NULL, NULL, NULL, NULL, NULL, NULL)" )
       
   def generateRandomDCs(self):
     #num_of_dcs = random.randint(1,MAX_DCS) 
@@ -221,7 +231,7 @@ class Database:
     print(min_node, min_dc)
     return(min_node, min_dc)
 
-  def preemptIfPossible(self, cpu, cpu_type, mem, priority):
+  def preemptIfPossible(self, cpu, cpu_type, mem, priority, myQueue):
     print("____________PREEMPT___________________")
     possible_dcs = self.getDCsToPreempt(cpu, cpu_type, mem)
     possible_nodes = self.getNodesToPreempt(possible_dcs, cpu, mem)
@@ -244,14 +254,18 @@ class Database:
       
       print("node = ", NodeID, "dcid = ", dcid)
       to_preempt = list()
+      to_enqueue = list()
 
       for x in tasks : 
         tasks_cpu += x[3]
-        tasks_mem += x[4]
+        tasks_mem += x[5]
         to_preempt.append(x[0])
+        to_enqueue.append(x)
+
         if(current_mem + tasks_mem >= mem and current_cpu + tasks_cpu >= cpu):
           print("%%%%%%%%************PREEMPRION POSSIBLE%%%%%%%%%%%%%************")
           self.preemptTasks(to_preempt)       ### preempt tasks on this node
+          myQueue.enqueuelist(to_enqueue)       ### enqueue preempted tasks
           self.updateDCTable(dcid,  cpu - tasks_cpu, mem - tasks_mem)     ## update cpu and mem values on Datacenter Table
           self.updateNodeTable(x[0], cpu - tasks_cpu, mem - tasks_mem)   ## update cpu and mem values on Node Table
           return(dcid, NodeID)
@@ -284,11 +298,11 @@ class Database:
     #for row in (self.c.execute("SELECT * FROM Node WHERE NodeID= " + str(node))):
       #print(row)
 
-  def updateTaskTable(self, task_id, dc, node, cpu, mem, priority):
+  def updateTaskTable(self, task_id, dc, node, cpu, cpu_type, mem, priority):
     print("upadtind task no. " + str(task_id))
     print("update task table", "node = ", node, "dc = ", dc)
     self.c.execute("UPDATE Task SET DCID = " + str(dc) + ", NODEID = " + str(node) + ", CPU = " + str(cpu)
-                    + ",MEM = " + str(mem) + ", PRIORITY = " + str(priority) + " WHERE TASKID = " + str(task_id))
+                    + ",MEM = " + str(mem) + ", PRIORITY = " + str(priority) + ", CPU_TYPE = " + str(cpu_type) + " WHERE TASKID = " + str(task_id))
 
   def printStatus(self, file):
     file.write(" -------------------------------------- DataCenters' Status ------------------------------------------\n\n")
@@ -349,21 +363,22 @@ def distributeTasksBF(myQueue, myDB, file):
       (BestNode, BestDC) = (myDB.findBestNode(possible_nodes, cpu, mem))
       if(BestNode == 0 or BestDC == 0): 
         print("TRYING TO PUT TASK NO." + str(task_no) + "BY PREEMPTION")
-        (PDC, PNode) = myDB.preemptIfPossible(cpu, cpu_type, mem, priority)
+        (PDC, PNode) = myDB.preemptIfPossible(cpu, cpu_type, mem, priority, myQueue)
         if(PNode == 0 or PDC == 0):
           file.write("***Task no." + str(task_no) +  " could not be allocated to any node.\n")
         else:
           file.write("$$$Task no." + str(task_no) + " allocated to datacenter " + str(PDC) + " and node " + str(PNode) + "\n")
-          myDB.updateTaskTable(task_no, PDC, PNode, cpu, mem, priority)
+          myDB.updateTaskTable(task_no, PDC, PNode, cpu, cpu_type, mem, priority)
+          
       else:
         myDB.updateDCTable( BestDC, cpu, mem)
         myDB.updateNodeTable( BestNode, cpu, mem)
-        myDB.updateTaskTable(task_no, BestDC, BestNode, cpu, mem, priority)
+        myDB.updateTaskTable(task_no, BestDC, BestNode, cpu, cpu_type, mem, priority)
         file.write("%%%Task no." + str(task_no) + " allocated to datacenter " + str(BestDC) + " and node " + str(BestNode) + "\n")
       
     else:
       print("request", request)
-      file.write("\n--------------------------------------Finished distrubuting Tasks--------------------------------------\n\n")
+      file.write("\n--------------------------------------Finished distributing Tasks--------------------------------------\n\n")
       return
 
     file.write("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n\n")

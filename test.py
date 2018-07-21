@@ -5,7 +5,7 @@ MAX_CPU = 500
 MAX_MEM = 2048
 MAX_DCS = 10
 MAX_NODES = 10
-MAX_REQS = 500
+MAX_REQS = 30
 MIN_PRIORITY = 3
 
 task_id = 1
@@ -43,29 +43,26 @@ class Queue:
       return self.queue
 
   def initiateQueue(self):
-      # TASK_ID, CPU, CP_TYPE, MEM, PRIORITY
-      self.enqueue(1, 50, 2, 700, 2)
-      self.enqueue(2, 50, 2, 100, 3)
-      self.enqueue(3, 50, 2, 800, 1)
-      self.enqueue(4, 200, 1, 1500, 3)
-      self.enqueue(5, 350, 1, 700, 2)
-      global task_id
-      task_id = 6
+      
+      #TASK_ID, CPU, CP_TYPE, MEM, PRIORITY
+      #self.enqueue(1, 50, 1, 700, 2)
       #global task_id
-      # task_id = 1
-      # for x in range(random.randint(1, MAX_REQS)):
+      #task_id = 2
+      global task_id
+      task_id = 1
+      for x in range(random.randint(1, MAX_REQS)):
 
-      #      cpu = random.randint(1,MAX_CPU)
-      #      cpu_type = random.randint(1, 2)
-      #      mem = random.randint(1,MAX_MEM)
-      #      priority = random.randint(1, MIN_PRIORITY)
-      #      self.enqueue(task_id, cpu, cpu_type, mem, priority)
-      #      task_id += 1
+           cpu = random.randint(1,MAX_CPU)
+           cpu_type = random.randint(1, 2)
+           mem = random.randint(1,MAX_MEM)
+           priority = random.randint(1, MIN_PRIORITY)
+           self.enqueue(task_id, cpu, cpu_type, mem, priority)
+           task_id += 1
 
 class Database:
 
   def __init__(self):
-      self.conn = sqlite3.connect('setareee.db')
+      self.conn = sqlite3.connect('testdb.db')
       self.c = self.conn.cursor()
       
 
@@ -121,41 +118,45 @@ class Database:
       self.c.execute("INSERT INTO Task VALUES (" + str(x) + ", NULL, NULL, NULL, NULL, NULL, NULL)" )
       
   def generateRandomDCs(self):
-    #num_of_dcs = random.randint(1,MAX_DCS) 
-    num_of_dcs = random.randint(1,1) 
+    num_of_dcs = random.randint(1,MAX_DCS) 
+    #num_of_dcs = 2 
     print("creating " + str(num_of_dcs) + " datacenters")
     for x in range(1, num_of_dcs + 1):
       self.insertIntoDCTable(x)
     return num_of_dcs
 
   def generateRandomNodes(self, num_of_dcs):
-    # node_table_cntr = 1
-    # for dc_cnt in range(1, num_of_dcs + 1):
-    #   num_of_nodes = random.randint(1, MAX_NODES)
-    #   cpu = random.randint(1, MAX_CPU)
-    #   cpu_type = random.randint(1, 2)
-    #   mem = random.randint(1, MAX_MEM)
+    node_table_cntr = 1
+    for dc_cnt in range(1, num_of_dcs + 1):
+      num_of_nodes = random.randint(1, MAX_NODES)
+      cpu = random.randint(1, MAX_CPU)
+      cpu_type = random.randint(1, 2)
+      mem = random.randint(1, MAX_MEM)
 
-    #   total_cpu = cpu * num_of_nodes
-    #   total_mem = mem * num_of_nodes
+      total_cpu = cpu * num_of_nodes
+      total_mem = mem * num_of_nodes
 
-    #   for node_cnt in range(1, num_of_nodes + 1):
-    #         self.insertIntoNodeTable(node_table_cntr, dc_cnt, cpu, cpu, cpu_type, mem, mem)
-    #         node_table_cntr += 1
-    # self.enqueue(1, 100, 2, 700, 2)
-    # self.enqueue(2, 50, 2, 800, 1)
-    # self.enqueue(3, 50, 2, 800, 3)
-    # self.enqueue(4, 200, 1, 1500, 3)
-    # self.enqueue(5, 350, 1, 700, 2)
-    self.insertIntoNodeTable(1, 1, 120, 120, 2, 800, 800)
-    total_cpu = 120
-    total_mem = 800
-    cpu_type = 2
-    dc_cnt = 1
+      for node_cnt in range(1, num_of_nodes + 1):
+            self.insertIntoNodeTable(node_table_cntr, dc_cnt, cpu, cpu, cpu_type, mem, mem)
+            node_table_cntr += 1
 
-
+    #self.insertIntoNodeTable(1, 1, 120, 120, 1, 800, 800)
+    #self.insertIntoNodeTable(2, 2, 400, 400, 1, 800, 2048)
+    #self.insertIntoNodeTable(2, 1, 120, 120, 2, 800, 800)
+    # total_cpu = 120
+    # total_mem = 800
+    # cpu_type = 1
+    # dc_cnt = 1
     self.c.execute("UPDATE DataCenter SET TOT_CPU = " + str(total_cpu) + ", CPU = " + str(total_cpu) + ", CPU_TYPE = "+ str(cpu_type) +
                       ", TOT_MEM =  " + str(total_mem) + ", MEM = " + str(total_mem) + " WHERE DCID = " + str(dc_cnt))
+
+    # total_cpu = 400
+    # total_mem = 2048
+    # cpu_type = 1
+    # dc_cnt = 2
+
+    # self.c.execute("UPDATE DataCenter SET TOT_CPU = " + str(total_cpu) + ", CPU = " + str(total_cpu) + ", CPU_TYPE = "+ str(cpu_type) +
+    #                   ", TOT_MEM =  " + str(total_mem) + ", MEM = " + str(total_mem) + " WHERE DCID = " + str(dc_cnt))
 
   def insertIntoDCTable(self, rowid):  #corrected
 
@@ -165,7 +166,7 @@ class Database:
 
   def insertIntoNodeTable(self, rowid, dcid, tot_cpu, cpu, cpu_type, tot_mem, mem):  #corrected
     exec_str = "INSERT INTO Node VALUES (" + str(rowid) + ", " +str(dcid) + ", " +str(cpu) + ", " +str(cpu) + " ," + str(cpu_type) + ", " + str(mem) + ", " + str(mem)+ ")"  
-    #print(exec_str)
+   
     self.c.execute(exec_str)
 
   def printDCTable(self):
@@ -203,7 +204,7 @@ class Database:
     str1 = "("
     flag = False
     for row in possible_dcs:
-      #print(" row is ", row)
+     
       if(flag == False) :
         str1 += str(row[0])
         flag = True
@@ -228,11 +229,26 @@ class Database:
         min_node = row[0]
         min_dc = row[1]
 
-    print(min_node, min_dc)
     return(min_node, min_dc)
 
+  def findWorstNode(self, possible_nodes, cpu, mem):
+    max_node = 0
+    max_dc = 0
+    max_cpu = 0
+    max_mem = 0
+
+    for row in possible_nodes:
+      cpu_diff = row[3] - max_cpu
+      mem_diff = row[6] - max_mem
+      if(cpu_diff >= 0 and mem_diff >= 0):
+        # TODO
+        max_node = row[0]
+        max_dc = row[1]
+
+    return(max_node, max_dc)
+
   def preemptIfPossible(self, cpu, cpu_type, mem, priority, myQueue):
-    print("____________PREEMPT___________________")
+    print("________________ PREEMPT ___________________")
     possible_dcs = self.getDCsToPreempt(cpu, cpu_type, mem)
     possible_nodes = self.getNodesToPreempt(possible_dcs, cpu, mem)
     print("needed cpu = ", cpu)
@@ -257,6 +273,7 @@ class Database:
       to_enqueue = list()
 
       for x in tasks : 
+        print("x= ", x)
         tasks_cpu += x[3]
         tasks_mem += x[5]
         to_preempt.append(x[0])
@@ -267,12 +284,11 @@ class Database:
           self.preemptTasks(to_preempt)       ### preempt tasks on this node
           myQueue.enqueuelist(to_enqueue)       ### enqueue preempted tasks
           self.updateDCTable(dcid,  cpu - tasks_cpu, mem - tasks_mem)     ## update cpu and mem values on Datacenter Table
-          self.updateNodeTable(x[0], cpu - tasks_cpu, mem - tasks_mem)   ## update cpu and mem values on Node Table
+          print("adding cpu",cpu - tasks_cpu, "adding meme",  mem - tasks_mem, "node = ", x[0])
+          self.updateNodeTable(x[2], cpu - tasks_cpu, mem - tasks_mem)   ## update cpu and mem values on Node Table
           return(dcid, NodeID)
 
     return(0, 0)
-
-    
 
   def preemptTasks(self, to_preempt):
 
@@ -282,24 +298,16 @@ class Database:
 
 
   def updateDCTable(self, dcid, cpu, mem):
-    #print("updating dctable dc with id  " + str(dcid))
-    #for row in (self.c.execute("SELECT * FROM DataCenter WHERE DCID = " + str(dcid))):
-      #print(row)
+  
     self.c.execute("UPDATE DataCenter SET CPU = CPU - " + str(cpu) + ", MEM = MEM - " + str(mem) + " WHERE DCID = " + str(dcid))
-    #for row in self.c.execute("SELECT * FROM DataCenter WHERE DCID = " + str(dcid)):
-      #print(row)
 
   def updateNodeTable(self, node, cpu, mem):
 
-    print("updating nodetable with node id  " + str(node))
-    #for row in (self.c.execute("SELECT * FROM Node WHERE NodeID= " + str(node))):
-      #print(row)
     self.c.execute("UPDATE Node SET CPU = CPU - " + str(cpu) + ", MEM = MEM - " + str(mem) + " WHERE NodeID = " + str(node))
-    #for row in (self.c.execute("SELECT * FROM Node WHERE NodeID= " + str(node))):
-      #print(row)
+
 
   def updateTaskTable(self, task_id, dc, node, cpu, cpu_type, mem, priority):
-    print("upadtind task no. " + str(task_id))
+    print("updating task no. " + str(task_id))
     print("update task table", "node = ", node, "dc = ", dc)
     self.c.execute("UPDATE Task SET DCID = " + str(dc) + ", NODEID = " + str(node) + ", CPU = " + str(cpu)
                     + ",MEM = " + str(mem) + ", PRIORITY = " + str(priority) + ", CPU_TYPE = " + str(cpu_type) + " WHERE TASKID = " + str(task_id))
@@ -329,7 +337,7 @@ class Database:
       file.write(" total mem = " + str(TOT_MEM) + ", " + str(MEM) + " remaining\n")
 
 
-      file.write(" ---------------------------------------- Tasks' Status -----------------------------------------------\n\n")
+    file.write(" ---------------------------------------- Tasks' Status -----------------------------------------------\n\n")
     for row in (self.c.execute("SELECT * FROM Task")):
       TASK_ID = row[0]
       DCID = row[1]
@@ -340,12 +348,14 @@ class Database:
       file.write("Task no." + str(TASK_ID) + ", On Node no." + str(NODE_ID) + ", on DC No." + str(DCID) + "\n")
       
 
-
   def commitDB(self):
     self.conn.commit()
 
 
 def distributeTasksBF(myQueue, myDB, file):
+
+
+  choice = raw_input("1 - Best Fit\n2- Worst Fit \n")
 
   
   file.write("--------------------------------- LOG FILE ---------------------------------\n\n")
@@ -360,7 +370,12 @@ def distributeTasksBF(myQueue, myDB, file):
       file.write("Task No." + str(task_no) + " needs cpu = " + str(cpu) + " type = " + str(cpu_type) + " and mem = " + str(mem) + "\n")
       possible_dcs = myDB.getPossibleDCs(cpu, cpu_type, mem)
       possible_nodes = myDB.getPossibleNodes(possible_dcs, cpu, mem)
-      (BestNode, BestDC) = (myDB.findBestNode(possible_nodes, cpu, mem))
+
+      if(choice == "1"):
+       (BestNode, BestDC) = myDB.findBestNode(possible_nodes, cpu, mem)
+      else:
+        (BestNode, BestDC) = myDB.findWorstNode(possible_nodes, cpu, mem)
+
       if(BestNode == 0 or BestDC == 0): 
         print("TRYING TO PUT TASK NO." + str(task_no) + "BY PREEMPTION")
         (PDC, PNode) = myDB.preemptIfPossible(cpu, cpu_type, mem, priority, myQueue)
@@ -396,13 +411,11 @@ def main():
   num_of_dcs = myDB.generateRandomDCs()
   myDB.generateRandomNodes(num_of_dcs)
   # myDB.printDCTable()
-  myDB.printNodeTable()
-
+  #myDB.printNodeTable()
   file = open("log.txt", "w")
   distributeTasksBF(myQueue, myDB, file)
   myDB.printStatus(file)
   #myDB.commitDB()
-
 
 if __name__== "__main__":
   main()
